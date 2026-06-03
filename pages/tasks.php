@@ -17,6 +17,10 @@ $tasks = $stmt->fetchAll();
 // Projeler listesi
 $stmt = $pdo->query('SELECT id, project_name FROM projects');
 $projects = $stmt->fetchAll();
+
+// Kullanıcılar listesi (görev atama için)
+$stmt = $pdo->query('SELECT id, name FROM users WHERE status = 1');
+$users = $stmt->fetchAll();
 ?>
 
 <div class="mb-6 flex justify-between items-center">
@@ -60,7 +64,7 @@ $projects = $stmt->fetchAll();
                         <small><?php echo $task['progress']; ?>%</small>
                     </td>
                     <td>
-                        <button class="btn-secondary text-sm" onclick="openModal('editTaskModal')" data-task-id="<?php echo $task['id']; ?>">Düzenle</button>
+                        <button class="btn-secondary text-sm" onclick="editTask(<?php echo $task['id']; ?>, '<?php echo htmlspecialchars($task['title'], ENT_QUOTES); ?>', <?php echo $task['project_id']; ?>, '<?php echo $task['status']; ?>', '<?php echo $task['priority']; ?>', <?php echo $task['assigned_to'] ?? 'null'; ?>, <?php echo $task['progress']; ?>)">Düzenle</button>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -68,7 +72,7 @@ $projects = $stmt->fetchAll();
     </table>
 </div>
 
-<!-- Görev Modal -->
+<!-- Yeni Görev Modal -->
 <div id="taskModal" class="modal">
     <div class="modal-content">
         <span class="modal-close" onclick="closeModal('taskModal')">&times;</span>
@@ -107,9 +111,90 @@ $projects = $stmt->fetchAll();
                 </select>
             </div>
             
+            <div class="form-group">
+                <label>Atanan Kişi</label>
+                <select name="assigned_to" class="form-control">
+                    <option value="">Atanmadı</option>
+                    <?php foreach ($users as $u): ?>
+                        <option value="<?php echo $u['id']; ?>"><?php echo htmlspecialchars($u['name']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            
             <button type="submit" class="btn-primary w-full">Görev Oluştur</button>
         </form>
     </div>
 </div>
+
+<!-- Görev Düzenle Modal -->
+<div id="editTaskModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal('editTaskModal')">&times;</span>
+        <div class="modal-header">Görev Düzenle</div>
+        
+        <form action="/api/tasks.php" method="POST">
+            <input type="hidden" name="action" value="update">
+            <input type="hidden" name="task_id" id="editTaskId">
+            
+            <div class="form-group">
+                <label>Başlık</label>
+                <input type="text" name="title" id="editTaskTitle" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Durum</label>
+                <select name="status" id="editTaskStatus" class="form-control">
+                    <option value="pending">Beklemede</option>
+                    <option value="in_progress">Devam Ediyor</option>
+                    <option value="completed">Tamamlandı</option>
+                    <option value="cancelled">İptal Edildi</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Öncelik</label>
+                <select name="priority" id="editTaskPriority" class="form-control">
+                    <option value="low">Düşük</option>
+                    <option value="medium">Orta</option>
+                    <option value="high">Yüksek</option>
+                    <option value="critical">Kritik</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>İlerleme (%)</label>
+                <input type="number" name="progress" id="editTaskProgress" class="form-control" min="0" max="100" value="0">
+            </div>
+            
+            <div class="form-group">
+                <label>Atanan Kişi</label>
+                <select name="assigned_to" id="editTaskAssigned" class="form-control">
+                    <option value="">Atanmadı</option>
+                    <?php foreach ($users as $u): ?>
+                        <option value="<?php echo $u['id']; ?>"><?php echo htmlspecialchars($u['name']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            
+            <div class="flex gap-2">
+                <button type="submit" class="btn-primary flex-1">Kaydet</button>
+                <button type="button" class="btn-secondary flex-1" onclick="closeModal('editTaskModal')">İptal</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function editTask(taskId, title, projectId, status, priority, assignedTo, progress) {
+    document.getElementById('editTaskId').value = taskId;
+    document.getElementById('editTaskTitle').value = title;
+    document.getElementById('editTaskStatus').value = status;
+    document.getElementById('editTaskPriority').value = priority;
+    document.getElementById('editTaskProgress').value = progress;
+    document.getElementById('editTaskAssigned').value = assignedTo || '';
+    
+    openModal('editTaskModal');
+}
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

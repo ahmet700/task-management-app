@@ -37,6 +37,10 @@ function redirectIfNotLoggedIn() {
     }
 }
 
+function requireIfNotLoggedIn() {
+    return redirectIfNotLoggedIn();
+}
+
 function getUserRole() {
     return $_SESSION['role'] ?? null;
 }
